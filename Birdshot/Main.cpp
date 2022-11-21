@@ -4,6 +4,8 @@
 using namespace ftxui;
 
 int main() {
+    auto screen = ScreenInteractive::Fullscreen();
+
 	//Input Name (User Input via Console)
     std::string name;
     Component inputName = Input(&name, "Input Name Here...");
@@ -12,15 +14,7 @@ int main() {
         });
     //If Name is Greater than Three Characters, Try Again (to Capture Arcade-Like Feel) (Input Validation)
     std::string nameValidation;
-    auto inputNameRenderer = Renderer([&] {
-        return vbox({
-            text(nameValidation) | hcenter,
-            inputName->Render() | hcenter
-            });
-        });
-
-    //renderer is like Unity Update()
-    auto renderer = Renderer(component, [&] {
+    auto inputNameRenderer = Renderer(component, [&] {
         if (name.length() == 0) {
             nameValidation = "";
         }
@@ -36,32 +30,40 @@ int main() {
             }
             nameValidation = "Welcome, " + name + "!";
         }
-
-        //Button to Transition to Play Screen after Name is Selected
-        auto gameTabRenderer = Renderer([] {
-            return vbox({
-                text("game tab")
-                });
+        return vbox({
+            text(nameValidation) | hcenter,
+            inputName->Render() | hcenter
             });
+        });
 
-        int tab_index = 0;
-        std::vector<std::string> tab_entries = {
-            "Input Name", "Play", "Settings"
-        };
-        auto tab_selection =
-            Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated());
-        auto tab_content = Container::Tab(
-            {
-                inputNameRenderer,
-                gameTabRenderer
-            },
-            &tab_index);
-
-        auto main_container = Container::Vertical({
-            tab_selection,
-            tab_content,
+    //Button to Transition to Play Screen after Name is Selected
+    auto playTabRenderer = Renderer([] {
+        return vbox({
+            text("game tab")
             });
+        });
 
+    //tabs
+    int tab_index = 0;
+    std::vector<std::string> tab_entries = {
+        "Input Name", "Play", "Leaderboard", "Settings"
+    };
+    auto tab_selection =
+        Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated());
+    auto tab_content = Container::Tab(
+        {
+            inputNameRenderer,
+            playTabRenderer
+        },
+        &tab_index);
+
+    auto main_container = Container::Vertical({
+        tab_selection,
+        tab_content,
+        });
+
+    //renderer is like Unity Update() //but not for everything?
+    auto mainRenderer = Renderer(main_container, [&] {
         return vbox({
             text("   ___  _        __    __        __ ") | hcenter,
             text("  / _ )(_)______/ /__ / /  ___  / /_") | hcenter,
@@ -76,8 +78,22 @@ int main() {
         });
     });
 
-    auto screen = ScreenInteractive::TerminalOutput();
-    screen.Loop(renderer);
+    int shift = 0;
+
+    std::atomic<bool> refresh_ui_continue = true;
+    std::thread refresh_ui([&] {
+        while (refresh_ui_continue) {
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(0.05s);
+            screen.Post([&] { shift++; });
+            screen.Post(Event::Custom);
+        }
+        });
+
+    //auto screen = ScreenInteractive::TerminalOutput();
+    screen.Loop(mainRenderer);
+    refresh_ui_continue = false;
+    refresh_ui.join();
 
 	return 0;
 }
