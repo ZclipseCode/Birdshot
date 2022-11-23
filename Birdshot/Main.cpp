@@ -1,10 +1,21 @@
 #include "ftxuiAll.h"
 #include <string>
+#include <vector>
+
+#include <cmath>
+#include <utility>
+#include <memory>
 
 using namespace ftxui;
 
 int main() {
     auto screen = ScreenInteractive::Fullscreen();
+
+    //Button to Transition to Play Screen after Name is Selected
+    bool playActive = false;
+    auto playButton = Container::Horizontal({
+        Button("Play!", [&] {playActive = true; })
+    });
 
 	//Input Name (User Input via Console)
     std::string name;
@@ -30,36 +41,59 @@ int main() {
             }
             nameValidation = "Welcome, " + name + "!";
         }
-        return vbox({
+        if (name.length() != 3) {
+            return vbox({
             text(nameValidation) | hcenter,
-            inputName->Render() | hcenter
+            inputName->Render() | hcenter,
             });
+        }
+        else {
+            return vbox({
+            text(nameValidation) | hcenter,
+            inputName->Render() | hcenter,
+            playButton->Render() | hcenter
+            });
+        }
         });
 
-    //Button to Transition to Play Screen after Name is Selected
-    auto playTabRenderer = Renderer([] {
-        return vbox({
-            text("game tab")
-            });
+    //play tab
+    int mouse_x = 0;
+
+    auto playTabRenderer = Renderer([&] {
+        auto c = Canvas(100, 1000);
+        c.DrawPointLine(40, 40, mouse_x, 0);
+        c.DrawPointLine(40, 40, 60, 40);
+        c.DrawPointLine(60, 40, mouse_x, 0);
+        return canvas(std::move(c)) | border;
         });
 
     //tabs
     int tab_index = 0;
     std::vector<std::string> tab_entries = {
-        "Input Name", "Play", "Leaderboard", "Settings"
+        " Input Name ", " Play ", " Leaderboard ", " How to Play ", " Settings "
     };
     auto tab_selection =
-        Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated());
+        Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated()) | border | hcenter;
     auto tab_content = Container::Tab(
         {
-            inputNameRenderer,
-            playTabRenderer
+            inputNameRenderer | hcenter,
+            playTabRenderer | hcenter
         },
         &tab_index);
 
+    //mouse
+    auto tab_with_mouse = CatchEvent(tab_content, [&](Event e) {
+        if (e.is_mouse()) {
+            mouse_x = e.mouse().x;
+        }
+        return false;
+        });
+
+    //used for everything?
     auto main_container = Container::Vertical({
         tab_selection,
         tab_content,
+        tab_with_mouse
         });
 
     //renderer is like Unity Update() //but not for everything?
