@@ -20,6 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ftxuiAll.h" />
+    <ClInclude Include="laser.h" />
+    <ClInclude Include="projectile.h" />
+    <ClInclude Include="remoteControlledRock.h" />
+    <ClInclude Include="rock.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />

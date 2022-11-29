@@ -1,10 +1,16 @@
 #include "ftxuiAll.h"
 #include <string>
 #include <vector>
-
 #include <cmath>
 #include <utility>
 #include <memory>
+#include <cstdlib>
+#include <ctime>
+
+#include "projectile.h"
+#include "rock.h"
+#include "laser.h"
+#include "remoteControlledRock.h"
 
 using namespace ftxui;
 
@@ -12,10 +18,10 @@ int main() {
     auto screen = ScreenInteractive::Fullscreen();
 
     //Button to Transition to Play Screen after Name is Selected
-    bool playActive = false;
-    auto playButton = Container::Horizontal({
-        Button("Play!", [&] {playActive = true; })
-    });
+    //bool playActive = false;
+    //auto playButton = Container::Horizontal({
+    //    Button("Play!", [&] {playActive = true; })
+    //});
 
 	//Input Name (User Input via Console)
     std::string name;
@@ -50,20 +56,155 @@ int main() {
         else {
             return vbox({
             text(nameValidation) | hcenter,
-            inputName->Render() | hcenter,
-            playButton->Render() | hcenter
+            inputName->Render() | hcenter
+            //playButton->Render() | hcenter
             });
         }
         });
 
+    //settings
+    const std::vector<std::string> projectileEntries = {
+        "Rock",
+        "Laser",
+        "Remote-Controlled Rock"
+    };
+    int projectileSelected = 0;
+    Component projectileSel = Radiobox(&projectileEntries, &projectileSelected);
+
+    auto compilerComponent = Container::Horizontal({
+        projectileSel
+        });
+
+    auto settingsCommand = [&] {
+        Elements line;
+        line.push_back(text(projectileEntries[projectileSelected]) | bold);
+        return line;
+    };
+
+    //settings tab
+    rock* mainRock = new rock;
+    laser* mainLaser = new laser;
+    remoteControlledRock* mainRcr = new remoteControlledRock;
+
+    bool rockOn = true;
+    bool laserOn = false;
+    bool rcrOn = false;
+
+    auto settingsRenderer = Renderer(compilerComponent, [&] {
+        auto projectileWindow = window(text("Projectile"),
+            projectileSel->Render() | frame);
+
+        if (projectileSelected == 0) {
+            mainRock->Activate(rockOn, laserOn, rcrOn);
+        }
+        else if (projectileSelected == 1) {
+            mainLaser->Activate(rockOn, laserOn, rcrOn);
+        }
+        else if (projectileSelected == 2) {
+            mainRcr->Activate(rockOn, laserOn, rcrOn);
+        }
+
+        return vbox({
+            hbox({
+                projectileWindow
+                })
+            });
+        });
+
     //play tab
+    bool shoot = false;
+
     int mouse_x = 0;
+    int mouse_y = 0;
+
+    int laserTravelStart = 100;
+    int laserTravelEnd = 80;
+
+    int rockTravelStart = 100;
+    int rockAngle = 50;
+    bool rockLeft = true;
+    bool rockPathed = false;
+
+    int birdX = 108;
+    int birdY = 0;
 
     auto playTabRenderer = Renderer([&] {
-        auto c = Canvas(100, 1000);
-        c.DrawPointLine(40, 40, mouse_x, 0);
-        c.DrawPointLine(40, 40, 60, 40);
-        c.DrawPointLine(60, 40, mouse_x, 0);
+        auto c = Canvas(100, 148); //max Y is 148
+        c.DrawPointLine(40, 100, mouse_x - 55, 140);
+        c.DrawPointLine(40, 100, 60, 100);
+        c.DrawPointLine(60, 100, mouse_x - 55, 140);
+
+        //bird
+        std::srand(std::time(0));
+        if (birdX >= 108) {
+            birdX = 0;
+            birdY = std::rand() % (81 - 2) + 2;
+        }
+        c.DrawPointEllipseFilled(birdX++, birdY, 8, 2);
+
+        if (shoot && rockOn) {
+            if (!rockPathed) {
+                if (mouse_x - 55 <= 50) {
+                    rockLeft = true;
+                    rockPathed = true;
+                }
+                else if (mouse_x - 55 > 50) {
+                    rockLeft = false;
+                    rockPathed = true;
+                }
+            }
+            
+            if (rockLeft) {
+                c.DrawPointCircleFilled(rockAngle++, rockTravelStart--, 6);
+
+                if (rockAngle >= 104 || rockTravelStart <= -4) {
+                    shoot = false;
+                    rockTravelStart = 100;
+                    rockAngle = 50;
+                    rockPathed = false;
+                }
+            }
+            else if (!rockLeft) {
+                c.DrawPointCircleFilled(rockAngle--, rockTravelStart--, 6);
+
+                if (rockAngle <= -4 || rockTravelStart <= -4) {
+                    shoot = false;
+                    rockTravelStart = 100;
+                    rockAngle = 50;
+                    rockPathed = false;
+                }
+            }
+        }
+        else if (shoot && laserOn) {
+            c.DrawPointLine(50, laserTravelStart-= 3, 50, laserTravelEnd-= 3);
+
+            if (laserTravelStart <= 0) {
+                shoot = false;
+                laserTravelStart = 100;
+                laserTravelEnd = 80;
+            }
+        }
+        else if (shoot && rcrOn) {
+            if (mouse_x - 55 <= 50) {
+                c.DrawPointCircleFilled(rockAngle++, rockTravelStart--, 6);
+
+                if (rockAngle >= 104 || rockTravelStart <= -4) {
+                    shoot = false;
+                    rockTravelStart = 100;
+                    rockAngle = 50;
+                }
+            }
+            else if (mouse_x - 55 > 50) {
+                c.DrawPointCircleFilled(rockAngle--, rockTravelStart--, 6);
+
+                if (rockAngle <= -4 || rockTravelStart <= -4) {
+                    shoot = false;
+                    rockTravelStart = 100;
+                    rockAngle = 50;
+                }
+            }
+        }
+
         return canvas(std::move(c)) | border;
         });
 
@@ -77,7 +218,8 @@ int main() {
     auto tab_content = Container::Tab(
         {
             inputNameRenderer | hcenter,
-            playTabRenderer | hcenter
+            playTabRenderer | hcenter,
+            settingsRenderer | hcenter
         },
         &tab_index);
 
@@ -85,6 +227,11 @@ int main() {
     auto tab_with_mouse = CatchEvent(tab_content, [&](Event e) {
         if (e.is_mouse()) {
             mouse_x = e.mouse().x;
+            mouse_y = e.mouse().y;
+
+            if (tab_index == 1 && e.mouse().motion && Mouse::Pressed) {
+                shoot = true;
+            }
         }
         return false;
         });

@@ -18,6 +18,18 @@
     <ClInclude Include="ftxuiAll.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="projectile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="laser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="remoteControlledRock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
