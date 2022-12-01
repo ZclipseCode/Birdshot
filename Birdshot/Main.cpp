@@ -1,3 +1,7 @@
+// For personal use to show unicode
+// Copy and paste into Windows Terminal:
+// & C:\Users\bmich\source\repos\Birdshot\Debug\Birdshot.exe
+
 #include "ftxuiAll.h"
 #include <string>
 #include <vector>
@@ -14,14 +18,32 @@
 
 using namespace ftxui;
 
+//Different Bird Types (Speeds) (Enumerated Type (enum) (User-Defined Data Types)
+enum class birdSpeed {
+    slow,
+    medium,
+    fast
+};
+
+int BirdSpeedAssign(birdSpeed bs) {
+    switch (bs) {
+    case birdSpeed::slow:
+        return 1;
+        break;
+    case birdSpeed::medium:
+        return 2;
+        break;
+    case birdSpeed::fast:
+        return 3;
+        break;
+    default:
+        return 1;
+        break;
+    }
+}
+
 int main() {
     auto screen = ScreenInteractive::Fullscreen();
-
-    //Button to Transition to Play Screen after Name is Selected
-    //bool playActive = false;
-    //auto playButton = Container::Horizontal({
-    //    Button("Play!", [&] {playActive = true; })
-    //});
 
 	//Input Name (User Input via Console)
     std::string name;
@@ -71,13 +93,23 @@ int main() {
     int projectileSelected = 0;
     Component projectileSel = Radiobox(&projectileEntries, &projectileSelected);
 
+    const std::vector<std::string> speedEntries = {
+        "Slow",
+        "Medium",
+        "Fast"
+    };
+    int speedSelected = 1;
+    Component speedSel = Radiobox(&speedEntries, &speedSelected);
+
     auto compilerComponent = Container::Horizontal({
-        projectileSel
+        projectileSel,
+        speedSel
         });
 
     auto settingsCommand = [&] {
         Elements line;
         line.push_back(text(projectileEntries[projectileSelected]) | bold);
+        line.push_back(text(speedEntries[speedSelected]) | bold);
         return line;
     };
 
@@ -89,6 +121,12 @@ int main() {
     bool rockOn = true;
     bool laserOn = false;
     bool rcrOn = false;
+
+    birdSpeed currentSlow = birdSpeed::slow;
+    birdSpeed currentMedium = birdSpeed::medium;
+    birdSpeed currentFast = birdSpeed::fast;
+
+    int currentSpeed = BirdSpeedAssign(currentSlow);
 
     auto settingsRenderer = Renderer(compilerComponent, [&] {
         auto projectileWindow = window(text("Projectile"),
@@ -104,9 +142,23 @@ int main() {
             mainRcr->Activate(rockOn, laserOn, rcrOn);
         }
 
+        auto speedWindow = window(text("Bird Speed"),
+            speedSel->Render() | frame);
+
+        if (speedSelected == 0) {
+            currentSpeed = BirdSpeedAssign(currentSlow);
+        }
+        else if (speedSelected == 1) {
+            currentSpeed = BirdSpeedAssign(currentMedium);
+        }
+        else if (speedSelected == 2) {
+            currentSpeed = BirdSpeedAssign(currentFast);
+        }
+
         return vbox({
-            hbox({
-                projectileWindow
+            vbox({
+                projectileWindow,
+                speedWindow
                 })
             });
         });
@@ -128,6 +180,9 @@ int main() {
     int birdX = 108;
     int birdY = 0;
 
+    //Hitting Birds Give Points that are Added to the Total Score (Arithmetic Operations)
+    int score = 0;
+
     auto playTabRenderer = Renderer([&] {
         auto c = Canvas(100, 148); //max Y is 148
         c.DrawPointLine(40, 100, mouse_x - 55, 140);
@@ -140,7 +195,7 @@ int main() {
             birdX = 0;
             birdY = std::rand() % (81 - 2) + 2;
         }
-        c.DrawPointEllipseFilled(birdX++, birdY, 8, 2);
+        c.DrawPointEllipseFilled(birdX += currentSpeed, birdY, 8, 2);
 
         if (shoot && rockOn) {
             if (!rockPathed) {
@@ -203,6 +258,17 @@ int main() {
                     rockAngle = 50;
                 }
             }
+        }
+
+        //gain score
+        c.DrawText(0, 147, "Score: " + std::to_string(score));
+
+        if (rockTravelStart <= birdY + 2 && rockTravelStart >= birdY - 2 && rockAngle <= birdX + 6 && rockAngle >= birdX - 6) {
+            score++;
+        }
+
+        if (laserTravelStart >= birdY && laserTravelEnd <= birdY && birdX <= 50 + 8 && birdX >= 50 - 8) {
+            score++;
         }
 
         return canvas(std::move(c)) | border;
