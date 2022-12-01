@@ -10,6 +10,8 @@
 #include <memory>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include "projectile.h"
 #include "rock.h"
@@ -40,6 +42,56 @@ int BirdSpeedAssign(birdSpeed bs) {
         return 1;
         break;
     }
+}
+
+//Leaderboard (File I/O)
+void AddScore(std::string name, int score) {
+    const std::string path = "Data\\Leaderboard.csv";
+
+    std::ofstream output;
+    output.open(path, std::ios::app);
+
+    output << name << ',' << score << std::endl;
+
+    output.close();
+}
+
+int GetLineCount(std::string path) {
+    std::ifstream stream;
+    stream.open(path);
+
+    int lines = 0;
+
+    std::string lineStr;
+    while (std::getline(stream, lineStr)) {
+        lines++;
+    }
+
+    stream.close();
+
+    return lines;
+}
+
+void ReadLeaderboard(std::string path, int lines) {
+    std::ifstream stream;
+    stream.open(path);
+
+    std::string lineStr;
+
+    for (int i = 0; i < lines; i++) {
+        std::stringstream strStr(lineStr);
+
+        std::string name;
+        std::getline(strStr, name, ',');
+
+        std::string scoreStr;
+        std::getline(strStr, scoreStr, '.');
+        int score = std::stoi(scoreStr);
+    }
+
+    stream.close();
+
+    //make objects to print scores maybe (maybe because the objects will have to be deleted after they're printed)
 }
 
 int main() {
@@ -79,12 +131,17 @@ int main() {
             return vbox({
             text(nameValidation) | hcenter,
             inputName->Render() | hcenter
-            //playButton->Render() | hcenter
             });
         }
         });
 
     //settings
+    //Hitting Birds Give Points that are Added to the Total Score (Arithmetic Operations)
+    int score = 0;
+    auto saveButton = Container::Horizontal({
+        Button("Save Score", [&] {AddScore(name, score); })
+        });
+
     const std::vector<std::string> projectileEntries = {
         "Rock",
         "Laser",
@@ -98,10 +155,11 @@ int main() {
         "Medium",
         "Fast"
     };
-    int speedSelected = 1;
+    int speedSelected = 0;
     Component speedSel = Radiobox(&speedEntries, &speedSelected);
 
     auto compilerComponent = Container::Horizontal({
+        saveButton,
         projectileSel,
         speedSel
         });
@@ -157,6 +215,7 @@ int main() {
 
         return vbox({
             vbox({
+                saveButton->Render() | center,
                 projectileWindow,
                 speedWindow
                 })
@@ -179,9 +238,6 @@ int main() {
 
     int birdX = 108;
     int birdY = 0;
-
-    //Hitting Birds Give Points that are Added to the Total Score (Arithmetic Operations)
-    int score = 0;
 
     auto playTabRenderer = Renderer([&] {
         auto c = Canvas(100, 148); //max Y is 148
