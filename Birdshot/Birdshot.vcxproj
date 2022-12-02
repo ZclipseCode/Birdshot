@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ftxuiAll.h" />
+    <ClInclude Include="highscore.h" />
     <ClInclude Include="laser.h" />
     <ClInclude Include="projectile.h" />
     <ClInclude Include="remoteControlledRock.h" />
@@ -27,6 +28,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Leaderboard.csv" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -1,6 +1,6 @@
-// For personal use to show unicode
-// Copy and paste into Windows Terminal:
-// & C:\Users\bmich\source\repos\Birdshot\Debug\Birdshot.exe
+//For personal use to show unicode
+//Copy and paste into Windows Terminal:
+//& C:\Users\bmich\source\repos\Birdshot\Debug\Birdshot.exe
 
 #include "ftxuiAll.h"
 #include <string>
@@ -17,6 +17,7 @@
 #include "rock.h"
 #include "laser.h"
 #include "remoteControlledRock.h"
+#include "highscore.h"
 
 using namespace ftxui;
 
@@ -45,9 +46,7 @@ int BirdSpeedAssign(birdSpeed bs) {
 }
 
 //Leaderboard (File I/O)
-void AddScore(std::string name, int score) {
-    const std::string path = "Data\\Leaderboard.csv";
-
+void AddScore(std::string path, std::string name, int score) {
     std::ofstream output;
     output.open(path, std::ios::app);
 
@@ -72,26 +71,30 @@ int GetLineCount(std::string path) {
     return lines;
 }
 
-void ReadLeaderboard(std::string path, int lines) {
+highscore** ReadHighscores(std::string path, int lines) {
+    highscore** highscores = new highscore * [lines];
+
     std::ifstream stream;
     stream.open(path);
 
     std::string lineStr;
 
     for (int i = 0; i < lines; i++) {
+        std::getline(stream, lineStr);
         std::stringstream strStr(lineStr);
 
         std::string name;
         std::getline(strStr, name, ',');
 
-        std::string scoreStr;
-        std::getline(strStr, scoreStr, '.');
-        int score = std::stoi(scoreStr);
+        std::string score;
+        std::getline(strStr, score, ',');
+
+        highscores[i] = new highscore(name, score);
     }
 
     stream.close();
 
-    //make objects to print scores maybe (maybe because the objects will have to be deleted after they're printed)
+    return highscores;
 }
 
 int main() {
@@ -135,11 +138,64 @@ int main() {
         }
         });
 
+    //leaderboard tab
+    const std::string path = "Data\\Leaderboard.csv";
+
+    auto leaderboardRenderer = Renderer([&] {
+        int lines = GetLineCount(path);
+        highscore** highscores = ReadHighscores(path, lines);
+
+        switch (lines) {
+        case 0:
+            return vbox({
+                text("No Data!") | hcenter
+            });
+        case 1:
+            return vbox({
+                text(highscores[0]->CompleteScore()) | hcenter
+            });
+            break;
+        case 2:
+            return vbox({
+                text(highscores[0]->CompleteScore()) | hcenter,
+                text(highscores[1]->CompleteScore()) | hcenter
+            });
+            break;
+        case 3:
+            return vbox({
+                text(highscores[0]->CompleteScore()) | hcenter,
+                text(highscores[1]->CompleteScore()) | hcenter,
+                text(highscores[2]->CompleteScore()) | hcenter
+            });
+            break;
+        case 4:
+            return vbox({
+                text(highscores[0]->CompleteScore()) | hcenter,
+                text(highscores[1]->CompleteScore()) | hcenter,
+                text(highscores[2]->CompleteScore()) | hcenter,
+                text(highscores[3]->CompleteScore()) | hcenter
+            });
+            break;
+        default:
+            return vbox({
+                text(highscores[0]->CompleteScore()) | hcenter,
+                text(highscores[1]->CompleteScore()) | hcenter,
+                text(highscores[2]->CompleteScore()) | hcenter,
+                text(highscores[3]->CompleteScore()) | hcenter,
+                text(highscores[5]->CompleteScore()) | hcenter
+            });
+            break;
+        }
+
+        delete[] highscores;
+
+        });
+
     //settings
     //Hitting Birds Give Points that are Added to the Total Score (Arithmetic Operations)
     int score = 0;
     auto saveButton = Container::Horizontal({
-        Button("Save Score", [&] {AddScore(name, score); })
+        Button("Save Score", [&] {AddScore(path, name, score); })
         });
 
     const std::vector<std::string> projectileEntries = {
@@ -341,6 +397,7 @@ int main() {
         {
             inputNameRenderer | hcenter,
             playTabRenderer | hcenter,
+            leaderboardRenderer | hcenter,
             settingsRenderer | hcenter
         },
         &tab_index);
