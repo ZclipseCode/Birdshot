@@ -2,6 +2,8 @@
 //Copy and paste into Windows Terminal:
 //& C:\Users\bmich\source\repos\Birdshot\Debug\Birdshot.exe
 
+//Include all of my files except for "Slingshot Test.cpp" and "Test.cpp"
+
 #include "ftxuiAll.h"
 #include <string>
 #include <vector>
@@ -234,16 +236,25 @@ int main() {
     int speedSelected = 0;
     Component speedSel = Radiobox(&speedEntries, &speedSelected);
 
+    const std::vector<std::string> birdLabelEntries = {
+        "Off",
+        "On"
+    };
+    int birdLabelSelected = 0;
+    Component birdLabelSel = Radiobox(&birdLabelEntries, &birdLabelSelected);
+
     auto compilerComponent = Container::Horizontal({
         saveButton,
         projectileSel,
-        speedSel
+        speedSel,
+        birdLabelSel
         });
 
     auto settingsCommand = [&] {
         Elements line;
         line.push_back(text(projectileEntries[projectileSelected]) | bold);
         line.push_back(text(speedEntries[speedSelected]) | bold);
+        line.push_back(text(birdLabelEntries[birdLabelSelected]) | bold);
         return line;
     };
 
@@ -261,6 +272,8 @@ int main() {
     birdSpeed currentFast = birdSpeed::fast;
 
     int currentSpeed = BirdSpeedAssign(currentSlow);
+
+    bool birdLabel = false;
 
     auto settingsRenderer = Renderer(compilerComponent, [&] {
         auto projectileWindow = window(text("Projectile"),
@@ -289,11 +302,22 @@ int main() {
             currentSpeed = BirdSpeedAssign(currentFast);
         }
 
+        auto birdLabelWindow = window(text("Bird Labeler"),
+            birdLabelSel->Render() | frame);
+
+        if (birdLabelSelected == 0) {
+            birdLabel = false;
+        }
+        else if (birdLabelSelected == 1) {
+            birdLabel = true;
+        }
+
         return vbox({
             vbox({
                 saveButton->Render() | center,
                 projectileWindow,
-                speedWindow
+                speedWindow,
+                birdLabelWindow
                 })
             });
         });
@@ -325,9 +349,13 @@ int main() {
         std::srand(std::time(0));
         if (birdX >= 108) {
             birdX = 0;
-            birdY = std::rand() % (81 - 2) + 2;
+            birdY = std::rand() % (81 - 6) + 6; //range between 6 and 80, including 80
         }
+        
         c.DrawPointEllipseFilled(birdX += currentSpeed, birdY, 8, 2);
+        if (birdLabel) {
+            c.DrawText(birdX - 10, birdY - 6, "this is a bird");
+        }
 
         if (shoot && rockOn) {
             if (!rockPathed) {
@@ -395,7 +423,7 @@ int main() {
         //gain score
         c.DrawText(0, 147, "Score: " + std::to_string(score));
 
-        if (rockTravelStart <= birdY + 2 && rockTravelStart >= birdY - 2 && rockAngle <= birdX + 6 && rockAngle >= birdX - 6) {
+        if (rockTravelStart <= birdY + 2 && rockTravelStart >= birdY - 2 && rockAngle <= birdX + 10 && rockAngle >= birdX - 10) {
             score++;
         }
 
@@ -409,7 +437,7 @@ int main() {
     //tabs
     int tab_index = 0;
     std::vector<std::string> tab_entries = {
-        " Input Name ", " Play ", " Leaderboard ", " How to Play ", " Settings "
+        " Input Name ", " Play ", " Leaderboard ", " Settings "
     };
     auto tab_selection =
         Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated()) | border | hcenter;
