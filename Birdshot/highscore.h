@@ -12,12 +12,16 @@ public:
 		this->score = score;
 	};
 
-	void SetName(std::string name) {
-		this->name = name;
+	std::string GetName() {
+		return name;
 	}
 
-	void SetScore(std::string score) {
-		this->score = score;
+	std::string GetScoreStr() {
+		return score;
+	}
+
+	int GetScoreInt() {
+		return std::stoi(score);
 	}
 
 	std::string CompleteScore() {

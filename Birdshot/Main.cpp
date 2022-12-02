@@ -12,6 +12,7 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include "projectile.h"
 #include "rock.h"
@@ -140,10 +141,24 @@ int main() {
 
     //leaderboard tab
     const std::string path = "Data\\Leaderboard.csv";
+    
+    bool scoreSaved = false;
 
     auto leaderboardRenderer = Renderer([&] {
+        scoreSaved = false;
+
         int lines = GetLineCount(path);
         highscore** highscores = ReadHighscores(path, lines);
+
+        //Leaderboard Management/Sorting (Arrays) (Well, Technically Vectors, but a Vector is an Array)
+        std::vector<highscore> hsSorters;
+        for (int i = 0; i < lines; i++) {
+            hsSorters.push_back(highscore(highscores[i]->GetName(), highscores[i]->GetScoreStr()));
+        }
+
+        std::sort(hsSorters.begin(), hsSorters.end(), [](highscore& a, highscore& b) {
+            return std::isgreater(a.GetScoreInt(), b.GetScoreInt());
+        });
 
         switch (lines) {
         case 0:
@@ -152,37 +167,37 @@ int main() {
             });
         case 1:
             return vbox({
-                text(highscores[0]->CompleteScore()) | hcenter
+                text(hsSorters[0].CompleteScore()) | hcenter
             });
             break;
         case 2:
             return vbox({
-                text(highscores[0]->CompleteScore()) | hcenter,
-                text(highscores[1]->CompleteScore()) | hcenter
+                text(hsSorters[0].CompleteScore()) | hcenter,
+                text(hsSorters[1].CompleteScore()) | hcenter
             });
             break;
         case 3:
             return vbox({
-                text(highscores[0]->CompleteScore()) | hcenter,
-                text(highscores[1]->CompleteScore()) | hcenter,
-                text(highscores[2]->CompleteScore()) | hcenter
+                text(hsSorters[0].CompleteScore()) | hcenter,
+                text(hsSorters[1].CompleteScore()) | hcenter,
+                text(hsSorters[2].CompleteScore()) | hcenter
             });
             break;
         case 4:
             return vbox({
-                text(highscores[0]->CompleteScore()) | hcenter,
-                text(highscores[1]->CompleteScore()) | hcenter,
-                text(highscores[2]->CompleteScore()) | hcenter,
-                text(highscores[3]->CompleteScore()) | hcenter
+                text(hsSorters[0].CompleteScore()) | hcenter,
+                text(hsSorters[1].CompleteScore()) | hcenter,
+                text(hsSorters[2].CompleteScore()) | hcenter,
+                text(hsSorters[3].CompleteScore()) | hcenter
             });
             break;
         default:
             return vbox({
-                text(highscores[0]->CompleteScore()) | hcenter,
-                text(highscores[1]->CompleteScore()) | hcenter,
-                text(highscores[2]->CompleteScore()) | hcenter,
-                text(highscores[3]->CompleteScore()) | hcenter,
-                text(highscores[5]->CompleteScore()) | hcenter
+                text(hsSorters[0].CompleteScore()) | hcenter,
+                text(hsSorters[1].CompleteScore()) | hcenter,
+                text(hsSorters[2].CompleteScore()) | hcenter,
+                text(hsSorters[3].CompleteScore()) | hcenter,
+                text(hsSorters[5].CompleteScore()) | hcenter
             });
             break;
         }
@@ -195,8 +210,13 @@ int main() {
     //Hitting Birds Give Points that are Added to the Total Score (Arithmetic Operations)
     int score = 0;
     auto saveButton = Container::Horizontal({
-        Button("Save Score", [&] {AddScore(path, name, score); })
-        });
+        Button("Save Score", [&] {
+        if (name.length() == 3 && !scoreSaved) {
+            AddScore(path, name, score);
+            scoreSaved = true;
+        }
+        })
+    });
 
     const std::vector<std::string> projectileEntries = {
         "Rock",
